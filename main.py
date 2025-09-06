@@ -1,4 +1,4 @@
-
+import os
 from flask import Flask, request, jsonify
 import requests
 
@@ -10,14 +10,18 @@ TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Bot is running!"
+    return "Bot is running! 🚀"
 
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
+
+    if "message" not in data:  # safety check
+        return jsonify({"ok": False}), 400
+
     chat_id = data["message"]["chat"]["id"]
-    text = data["message"]["text"]
+    text = data["message"].get("text", "")
 
     reply = f"You said: {text}"
     requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
@@ -25,9 +29,7 @@ def webhook():
         "text": reply
     })
 
-    return jsonify({
-        "ok": True
-    })
+    return jsonify({"ok": True})
 
 
 @app.route("/send", methods=["POST"])
@@ -37,9 +39,7 @@ def send_message():
     text = data.get("text")
 
     if not chat_id or not text:
-        return jsonify({
-            "error": "chat_id and text are required"
-        }), 400
+        return jsonify({"error": "chat_id and text are required"}), 400
 
     response = requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
         "chat_id": chat_id,
@@ -47,3 +47,8 @@ def send_message():
     })
 
     return jsonify(response.json())
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
